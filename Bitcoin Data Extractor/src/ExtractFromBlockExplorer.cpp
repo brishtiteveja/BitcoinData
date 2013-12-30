@@ -4,6 +4,7 @@ string numToString(int num){
 	ostringstream convert;
 	convert << num;
 
+	//hello
 	string res = convert.str();
 	return res;
 }
@@ -22,9 +23,9 @@ time_t convertToEpochtime(string realTime){
 	timeInfo.tm_hour = atoi(realTime.substr(11,2).c_str());
 	timeInfo.tm_min = atoi(realTime.substr(14,2).c_str());
 	timeInfo.tm_sec = atoi(realTime.substr(17,2).c_str());
-	cout << timeInfo.tm_year << " " << timeInfo.tm_mon << " " << timeInfo.tm_mday << " " << timeInfo.tm_hour << " " << timeInfo.tm_min << " " << timeInfo.tm_sec << endl;
+	//cout << timeInfo.tm_year << " " << timeInfo.tm_mon << " " << timeInfo.tm_mday << " " << timeInfo.tm_hour << " " << timeInfo.tm_min << " " << timeInfo.tm_sec << endl;
 	time_t epochTime = mktime(&timeInfo);
-	cout << epochTime << endl;
+	//cout << epochTime << endl;
 	return epochTime;
 }
 
@@ -38,7 +39,7 @@ struct tm* convertToUnixtime(time_t epochTime){
 void runExtractor(){
 	string outfileName;
 	int blockIDFrom = 0;//265000;
-	int blockIDTo = 1000;//265002;
+	int blockIDTo = 276664;
 	msi addrMap;  //address map , key: address , value: address id
 	mii userMap;
 	mii indegree,outdegree;
@@ -62,7 +63,7 @@ void runExtractor(){
 	if(txPrevFile.is_open()){
 		while(txPrevFile >> lastTXID >> lastBlkID >> a >> b && !txPrevFile.eof()){
 		}
-		cout << "Last TX ID: " << lastTXID + 1 << " lastBlkID: " << lastBlkID + 1 << endl;
+		//cout << "Last TX ID: " << lastTXID + 1 << " lastBlkID: " << lastBlkID + 1 << endl;
 	}
 
 
@@ -72,7 +73,7 @@ void runExtractor(){
 		while(addrPrevFile >> lastAddrID >> tmpAddr && !addrPrevFile.eof()){
 				addrMap[tmpAddr] = lastAddrID;
 		}
-		cout << "Last Addr ID: " << lastAddrID << endl;
+		//cout << "Last Addr ID: " << lastAddrID << endl;
 	}
 
 	if(degPrevFile.is_open()){
@@ -95,8 +96,10 @@ void runExtractor(){
 	userMap[0] = 0;  // Generation user id
 	if(userPrevFile.is_open()){
 		int addr_id;
-		while(userPrevFile >> addr_id >> lastUserID){
+		while(userPrevFile >> addr_id >> lastUserID){  //creating the maps
 			userMap[addr_id] = lastUserID;
+			addrUserMap.insert(pair<int,int>(addr_id,lastUserID));   // Multimap with (addressID,userID) pair
+			userAddrMap.insert(pair<int,int>(lastUserID,addr_id));   // Multimap with (userID,addressID) pair
 		}
 	}
 
@@ -365,7 +368,9 @@ void runExtractor(){
 						if(userMap.find(addr_id) == userMap.end()){
 							userID++;
 							userMap[addr_id] = userID;
-							cout << "Gen Output Address ID: " << addrID  << "  User ID: " << userID << endl;
+							addrUserMap.insert(pair<int,int>(addr_id,userID));
+							userAddrMap.insert(pair<int,int>(userID,addr_id));
+							//cout << "Gen Output Address ID: " << addrID  << "  User ID: " << userID << endl;
 						}
 
 						//increase the in degree of this output address, these are the miner address
@@ -494,7 +499,7 @@ void runExtractor(){
 							user_id = userID;
 						}
 						for(unsigned int i=0 ; i < inAddressIDs.size() ; i++){
-								cout << "inAddressID = " << inAddressIDs[i] << "  userID = " << user_id<<  endl;
+								//cout << "inAddressID = " << inAddressIDs[i] << "  userID = " << user_id<<  endl;
 								addrUserMap.insert(pair<int,int>(inAddressIDs[i],user_id));  //input addresses as the key of userID
 								userAddrMap.insert(pair<int,int>(user_id,inAddressIDs[i]));  //userID as the key of input addresses
 						}
@@ -503,8 +508,10 @@ void runExtractor(){
 						for(unsigned int j=0; j < outAddressIDs.size(); j++){
 							if(userMap.find(outAddressIDs[j]) == userMap.end()){
 								userID++;
+								addrUserMap.insert(pair<int,int>(outAddressIDs[j],userID));
+								userAddrMap.insert(pair<int,int>(userID,outAddressIDs[j]));
 								userMap[outAddressIDs[j]] = userID;
-								cout << "Output Address ID: " << outAddressIDs[j]  << "  User ID: " << userID << endl;
+								//cout << "Output Address ID: " << outAddressIDs[j]  << "  User ID: " << userID << endl;
 							}
 						}
 
@@ -531,25 +538,25 @@ void runExtractor(){
 	if(userID != 0){ //Only generation user
 		for(int addr = 1; addr <= addrID;addr++){ // addresses are the keys of the multimap
 				typeof(addrUserMap.begin()) it = addrUserMap.equal_range(addr).first;
-				int userid = it->second;
-				cout << "addr = " << addr << " user id before smallest = " << userid << endl;
+				int userid = (*it).second;
+				//cout << "addr = " << addr << " user id before smallest = " << userid << endl;
 				//find what other user ids given to this address id
 				for(it = addrUserMap.equal_range(addr).first; it != addrUserMap.equal_range(addr).second; it++){
-					cout << "addr =" << it->first << "Other user ids = " << it->second << endl;
+					//cout << "addr =" << it->first << "Other user ids = " << it->second << endl;
 					if(it->second < userid){
 						userid = it->second; // find the smallest
 					}
 				}
-				cout << "smallest userid = " << userid << endl;
+				//cout << "smallest userid = " << userid << endl;
 				for(it = addrUserMap.equal_range(addr).first; it != addrUserMap.equal_range(addr).second; it++){
 					int user_id = it->second;
-					cout << "addr = " << addr << "user id as the key: " << user_id << endl;
+					//cout << "addr = " << addr << "user id as the key: " << user_id << endl;
 					//find out what other addresses have that user_id as the key in the userAddr multimap and set userid
 					for(typeof(userAddrMap.begin()) it1 = userAddrMap.equal_range(user_id).first;
 						it1 != userAddrMap.equal_range(user_id).second; it1++){
-						cout << "address to map =" << it1->second << endl;
+						//cout << "address to map =" << it1->second << endl;
 						userMap[it1->second] = userid;
-						cout << "userMap[" << it1->second << "] = " << userid << endl;
+						//cout << "userMap[" << it1->second << "] = " << userid << endl;
 					}
 				}
 		}
@@ -574,12 +581,6 @@ void runExtractor(){
 		userIDFileName << addr << "\t" << userMap[addr] << endl;
 	}
 
-	//Weighted tx edge
-	//sort(userMap.begin(),userMap.end());
-//	tr(userMap,i){
-//		cout << i->second << " ";
-//	}
-
 	blkInfoFileName.close();
 	blkHashFileName.close();
 	txFileName.close();
@@ -591,6 +592,28 @@ void runExtractor(){
 	addressFileName.close();
 	balanceFileName.close();
 	userIDFileName.close();
+
+	addrUserMap.clear();
+	userAddrMap.clear();
+	indegree.clear();
+	outdegree.clear();
+//	//------>write to txuniqueedge.txt
+//	ifstream txedgeFileName;
+//	txedgeFileName.open("C:/Users/ananda/Downloads/Bitcoin/BitcoinData/txedge.txt",ofstream::app);
+//	ofstream txuniquedgeFileName;
+//	txedgeFileName.open("C:/Users/ananda/Downloads/Bitcoin/BitcoinData/txedge.txt",ofstream::app);
+//
+	userMap.clear();
+	addrMap.clear();
+	addrBalanceMap.clear();
+
+	//Weighted tx edge
+	//sort(userMap.begin(),userMap.end());
+//	tr(userMap,i){
+//		cout << i->second << " ";
+//	}
+
+
 }
 
 
