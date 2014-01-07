@@ -54,7 +54,7 @@ int execute() {
 
 			//converting to unix time
 			struct tm* time_info;
-			//time_info -> tm_year = year;
+			time_info -> tm_year = year;
 			time_info -> tm_mon = month;
 			time_info -> tm_mday = day;
 			time_info -> tm_hour = hour;
